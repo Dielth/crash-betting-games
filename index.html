@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Impact Games Test- Crash</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+  <style id="app-style">
+    :root {
+      --primary: #6d28d9;
+      --secondary: #db2777;
+      --accent: #10b981;
+      --dark: #111827;
+      --light: #f3f4f6;
+    }
+    
+    body {
+      background-color: #0f172a;
+      color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    .neon-border {
+      border: 2px solid transparent;
+      border-radius: 0.5rem;
+      box-shadow: 0 0 5px var(--primary), 0 0 10px var(--secondary);
+      background: linear-gradient(45deg, var(--primary), var(--secondary));
+      background-clip: padding-box;
+      position: relative;
+    }
+    
+    .neon-border::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: -1;
+      margin: -2px;
+      border-radius: inherit;
+      background: linear-gradient(45deg, var(--primary), var(--secondary), var(--accent));
+    }
+    
+    .game-tab {
+      transition: all 0.3s ease;
+      opacity: 0.7;
+      transform: scale(0.95);
+    }
+    
+    .game-tab.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(45deg, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 10px rgba(109, 40, 217, 0.5);
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 0 15px rgba(109, 40, 217, 0.7);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-cashout {
+      background: linear-gradient(45deg, #10b981, #059669);
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
+      }
+      50% {
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.9);
+      }
+    }
+    
+    .multiplier-display {
+      font-size: 3rem;
+      font-weight: bold;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+      transition: all 0.3s ease;
+    }
+    
+    .countdown {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #f87171;
+      text-shadow: 0 0 10px rgba(248, 113, 113, 0.7);
+    }
+    
+    .history-item {
+      transition: all 0.3s ease;
+    }
+    
+    .history-item:hover {
+      transform: translateX(5px);
+    }
+
+    .game-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.1;
+      z-index: -1;
+      background-size: cover;
+      background-position: center;
+      transition: opacity 0.5s ease;
+    }
+
+    #crash-bg {
+      background-image: url('https://cdn.pixabay.com/photo/2021/09/07/07/11/crypto-6603190_1280.jpg');
+    }
+
+    #spaceman-sprite {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 80px;
+        z-index: 20;
+        transition: transform 0.3s ease;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-image: url('https://cdn.pixabay.com/photo/2016/11/18/13/53/astronaut-1834773_1280.png');
+    }
+    
+    @keyframes spaceman-fly {
+        0% {
+            transform: translateX(-50%) translateY(0);
+        }
+        20% {
+            transform: translateX(-40%) translateY(-30%);
+        }
+        60% {
+            transform: translateX(-30%) translateY(-60%);
+        }
+        100% {
+            transform: translateX(-20%) translateY(-80%);
+        }
+    }
+    
+    @keyframes spaceman-fall {
+        0% {
+            transform: translateX(-20%) translateY(-80%) rotate(0deg);
+        }
+        50% {
+            transform: translateX(0%) translateY(-40%) rotate(90deg);
+        }
+        100% {
+            transform: translateX(50%) translateY(100%) rotate(180deg);
+        }
+    }
+    
+    #spaceman-sprite.fly {
+        animation: spaceman-fly 4s forwards;
+    }
+    
+    #spaceman-sprite.fall {
+        animation: spaceman-fall 1.5s forwards;
+    }
+
+    .input-field {
+      background-color: rgba(17, 24, 39, 0.8);
+      border: 1px solid rgba(109, 40, 217, 0.5);
+      border-radius: 0.5rem;
+      color: white;
+      padding: 0.75rem;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    .input-field:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(109, 40, 217, 0.3);
+    }
+
+    /* Custom scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(17, 24, 39, 0.8);
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: var(--secondary);
+    }
+
+    /* Balance animation */
+    @keyframes balanceUpdate {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.1);
+        color: #10b981;
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .balance-update {
+      animation: balanceUpdate 0.5s ease;
+    }
+
+    /* Game container animation */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .multiplier-display {
+        font-size: 2rem;
+      }
+      
+      .countdown {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+</head>
+<body class="p-4">
+  <div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <header class="mb-6">
+      <h1 class="text-4xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-pink-500 to-emerald-500 mb-2">
+        CRASH
+      </h1>
+      <p class="text-center text-gray-400">¡Apuesta, gana y desafía los límites!</p>
+    </header>
+
+    <!-- Game backgrounds -->
+    <div id="crash-bg" class="game-bg"></div>
+
+    <!-- Game Selector -->
+    <div class="flex justify-center mb-6 neon-border p-1 rounded-full">
+      <div class="flex w-full max-w-md">
+        <button id="crash-tab" class="game-tab active flex-1 py-2 px-4 rounded-full text-center font-bold">
+          <i class="fas fa-chart-line mr-2"></i>Crash
+        </button>
+      </div>
+    </div>
+
+    <!-- Balance and Currency Selector -->
+    <div class="flex flex-wrap justify-between items-center mb-6">
+      <div class="neon-border p-4 rounded-lg mb-4 md:mb-0 w-full md:w-auto">
+        <h3 class="text-lg font-semibold mb-2">Balance</h3>
+        <div class="flex items-center">
+          <span id="currency-symbol" class="text-2xl mr-2">$</span>
+          <span id="balance" class="text-2xl font-bold">1000.00</span>
+        </div>
+      </div>
+
+      <div class="neon-border p-4 rounded-lg w-full md:w-auto">
+        <h3 class="text-lg font-semibold mb-2">Moneda</h3>
+        <div class="flex space-x-2">
+          <button id="currency-mxn" class="btn-primary active">MXN</button>
+          <button id="currency-usd" class="btn-primary opacity-70">USD</button>
+          <button id="currency-btc" class="btn-primary opacity-70">BTC</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Container -->
+    <div id="game-container" class="neon-border p-6 rounded-xl mb-8 relative overflow-hidden">
+      <!-- Game Info -->
+      <div class="mb-6 text-center">
+        <h2 id="game-title" class="text-3xl font-bold mb-2">Crash</h2>
+        <p id="game-description" class="text-gray-300">¡Retira antes que el mercado colapse!</p>
+      </div>
+
+      <!-- Game Area -->
+      <div class="flex flex-col md:flex-row gap-6">
+        <!-- Game Display -->
+        <div class="w-full md:w-2/3 bg-gray-900/60 rounded-xl p-4 relative">
+          <div id="game-status" class="absolute top-4 right-4 bg-yellow-600 text-white px-4 py-2 rounded-lg font-bold">
+            Esperando apuestas
+          </div>
+          
+          <!-- Countdown Timer -->
+          <div id="countdown-container" class="flex justify-center items-center mb-4">
+            <span class="countdown">5</span>
+            <span class="text-lg ml-2">segundos para iniciar</span>
+          </div>
+          
+          <!-- Chart Container -->
+          <div id="chart-container" class="h-64 relative">
+            <canvas id="game-chart" class="w-full h-full"></canvas>
+            <div id="multiplier-container" class="absolute inset-0 flex items-center justify-center hidden">
+              <span id="current-multiplier" class="multiplier-display">1.00x</span>
+            </div>
+          </div>
+          
+          <!-- Game Controls -->
+          <div class="mt-6 flex justify-center">
+            <button id="cashout-btn" class="btn-primary btn-cashout text-xl hidden">
+              <i class="fas fa-hand-holding-dollar mr-2"></i>RETIRAR
+            </button>
+          </div>
+        </div>
+        
+        <!-- Betting Controls -->
+        <div class="w-full md:w-1/3 bg-gray-900/60 rounded-xl p-4">
+          <h3 class="text-xl font-bold mb-4 text-center">Realizar Apuesta</h3>
+          
+          <div class="mb-4">
+            <label class="block mb-2 text-gray-300">Cantidad</label>
+            <div class="flex">
+              <input id="bet-amount" type="number" min="1" step="1" value="10" class="input-field w-full" placeholder="Cantidad a apostar">
+            </div>
+          </div>
+          
+          <div class="flex flex-wrap gap-2 mb-4">
+            <button class="bet-preset px-3 py-1 bg-gray-700 rounded-md hover:bg-gray-600 transition">+5</button>
+            <button class="bet-preset px-3 py-1 bg-gray-700 rounded-md hover:bg-gray-600 transition">+10</button>
+            <button class="bet-preset px-3 py-1 bg-gray-700 rounded-md hover:bg-gray-600 transition">+50</button>
+            <button class="bet-preset px-3 py-1 bg-gray-700 rounded-md hover:bg-gray-600 transition">+100</button>
+            <button class="bet-preset px-3 py-1 bg-gray-700 rounded-md hover:bg-gray-600 transition">2x</button>
+            <button class="bet-preset px-3 py-1 bg-gray-700 rounded-md hover:bg-gray-600 transition">Max</button>
+          </div>
+          
+          <div class="mb-4">
+            <label class="block mb-2 text-gray-300">Auto Retirar en</label>
+            <div class="flex">
+              <input id="auto-cashout" type="number" min="1.1" step="0.1" value="2" class="input-field w-full" placeholder="Multiplicador para retirar automáticamente">
+              <span class="ml-2 flex items-center text-lg">x</span>
+            </div>
+          </div>
+          
+          <button id="bet-btn" class="btn-primary w-full text-xl">
+            <i class="fas fa-rocket mr-2"></i>APOSTAR
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Game History -->
+    <div class="neon-border p-6 rounded-xl">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold">Historial</h2>
+        <button id="reset-history" class="btn-primary">
+          <i class="fas fa-trash-alt mr-2"></i>Reiniciar Historial
+        </button>
+      </div>
+      
+      <div id="history-container" class="max-h-64 overflow-y-auto custom-scrollbar">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-800 text-left">
+            <tr>
+              <th class="p-3 rounded-tl-lg">ID</th>
+              <th class="p-3">Apuesta</th>
+              <th class="p-3">Multiplicador</th>
+              <th class="p-3">Ganancia</th>
+              <th class="p-3 rounded-tr-lg">Hora</th>
+            </tr>
+          </thead>
+          <tbody id="history-list">
+            <!-- History items will be dynamically added here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script id="app-script">
+    // Game state
+    const gameState = {
+      currentGame: 'crash',
+      currency: 'MXN',
+      balance: 1000,
+      countdown: 5,
+      isCountingDown: false,
+      isGraphRunning: false,
+      currentBet: 0,
+      currentMultiplier: 1,
+      autoCashoutValue: 2,
+      hasBetPlaced: false,
+      hasCashedOut: false,
+      gameHistory: {
+        crash: []
+      },
+      gameChart: null,
+      gameStartTime: 0,
+      timeoutId: null,
+      intervalId: null,
+      animationId: null
+    };
+
+    // Sound effects
+    const sounds = {
+      betPlaced: new Howl({ src: ['https://assets.codepen.io/162656/success-1.mp3'] }),
+      countdownBeep: new Howl({ src: ['https://assets.codepen.io/162656/beep.mp3'], volume: 0.5 }),
+      gameStart: new Howl({ src: ['https://assets.codepen.io/162656/woosh.mp3'] }),
+      cashout: new Howl({ src: ['https://assets.codepen.io/162656/success.mp3'] }),
+      crash: new Howl({ src: ['https://assets.codepen.io/162656/explosion.mp3'] })
+    };
+
+    // Game configurations
+    const gameConfigs = {
+      crash: {
+        title: 'Crash',
+        description: '¡Retira antes que el mercado colapse!',
+        maxMultiplier: 50,
+        growthRate: 0.08,
+        crashChance: 0.015,
+        graphColor: 'rgba(249, 115, 22, 0.7)',
+        backgroundColor: 'rgba(249, 115, 22, 0.1)',
+        icon: 'fa-chart-line'
+      }
+    };
+
+    // Currency configurations
+    const currencyConfigs = {
+      MXN: { symbol: '$', rate: 1 },
+      USD: { symbol: '$', rate: 0.059 },
+      BTC: { symbol: '₿', rate: 0.0000016 }
+    };
+
+    // DOM elements
+    const elements = {
+      gameTabs: {
+        crash: document.getElementById('crash-tab')
+      },
+      gameBackgrounds: {
+        crash: document.getElementById('crash-bg')
+      },
+      currencyButtons: {
+        MXN: document.getElementById('currency-mxn'),
+        USD: document.getElementById('currency-usd'),
+        BTC: document.getElementById('currency-btc')
+      },
+      gameTitle: document.getElementById('game-title'),
+      gameDescription: document.getElementById('game-description'),
+      gameStatus: document.getElementById('game-status'),
+      countdownContainer: document.getElementById('countdown-container'),
+      countdown: document.querySelector('.countdown'),
+      chartContainer: document.getElementById('chart-container'),
+      gameChart: document.getElementById('game-chart'),
+      multiplierContainer: document.getElementById('multiplier-container'),
+      currentMultiplier: document.getElementById('current-multiplier'),
+      betAmount: document.getElementById('bet-amount'),
+      autoCashout: document.getElementById('auto-cashout'),
+      betBtn: document.getElementById('bet-btn'),
+      cashoutBtn: document.getElementById('cashout-btn'),
+      currencySymbol: document.getElementById('currency-symbol'),
+      balance: document.getElementById('balance'),
+      resetHistory: document.getElementById('reset-history'),
+      historyList: document.getElementById('history-list'),
+      betPresets: document.querySelectorAll('.bet-preset')
+    };
+
+    // Función para cambiar moneda (SOLUCIÓN AL PROBLEMA)
+    function switchCurrency(currency) {
+      gameState.currency = currency;
+      elements.currencySymbol.textContent = currencyConfigs[currency].symbol;
+      elements.balance.textContent = formatCurrency(gameState.balance);
+
+      // Actualizar estado de botones
+      Object.keys(elements.currencyButtons).forEach(key => {
+        if (key === currency) {
+          elements.currencyButtons[key].classList.remove('opacity-70');
+          elements.currencyButtons[key].classList.add('active');
+        } else {
+          elements.currencyButtons[key].classList.add('opacity-70');
+          elements.currencyButtons[key].classList.remove('active');
+        }
+      });
+
+      // Actualizar historial
+      updateHistoryUI();
+    }
+
+    // Initialize chart
+    function initChart() {
+      const ctx = elements.gameChart.getContext('2d');
+      const config = gameConfigs[gameState.currentGame];
+
+      if (gameState.gameChart) {
+        gameState.gameChart.destroy();
+      }
+
+      gameState.gameChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['0'],
+          datasets: [{
+            label: 'Multiplicador',
+            data: [1],
+            borderColor: config.graphColor,
+            backgroundColor: config.backgroundColor,
+            borderWidth: 3,
+            pointRadius: 0,
+            tension: 0.4,
+            fill: 'start'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: 'index',
+          },
+          plugins: {
+            legend: {
+              display: false,
+            },
+            tooltip: {
+              enabled: false
+            }
+          },
+          scales: {
+            x: {
+              display: false,
+            },
+            y: {
+              display: false,
+              min: 1,
+              max: 2
+            }
+          },
+          animation: false
+        }
+      });
+    }
+
+    // Format currency value
+    function formatCurrency(value) {
+      const config = currencyConfigs[gameState.currency];
+      const convertedValue = value * config.rate;
+      
+      if (gameState.currency === 'BTC') {
+        return convertedValue.toFixed(8);
+      }
+      
+      return convertedValue.toFixed(2);
+    }
+
+    // Start countdown
+    function startCountdown() {
+      gameState.isCountingDown = true;
+      elements.gameStatus.textContent = 'Esperando apuestas';
+      elements.gameStatus.className = 'absolute top-4 right-4 bg-yellow-600 text-white px-4 py-2 rounded-lg font-bold';
+      elements.countdownContainer.classList.remove('hidden');
+      elements.countdown.textContent = gameState.countdown;
+      elements.multiplierContainer.classList.add('hidden');
+      elements.betBtn.disabled = false;
+      elements.cashoutBtn.classList.add('hidden');
+      
+      initChart();
+      
+      gameState.intervalId = setInterval(() => {
+        gameState.countdown--;
+        elements.countdown.textContent = gameState.countdown;
+        
+        if (gameState.countdown <= 3) {
+          sounds.countdownBeep.play();
+        }
+        
+        if (gameState.countdown <= 0) {
+          clearInterval(gameState.intervalId);
+          startGameAnimation();
+        }
+      }, 1000);
+    }
+
+    // Start game animation
+    function startGameAnimation() {
+      gameState.isCountingDown = false;
+      gameState.isGraphRunning = true;
+      gameState.currentMultiplier = 1;
+      gameState.gameStartTime = Date.now();
+      elements.gameStatus.textContent = '¡En curso!';
+      elements.gameStatus.className = 'absolute top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg font-bold';
+      elements.countdownContainer.classList.add('hidden');
+      elements.multiplierContainer.classList.remove('hidden');
+      elements.currentMultiplier.textContent = '1.00x';
+      elements.betBtn.disabled = true;
+      
+      if (gameState.hasBetPlaced) {
+        elements.cashoutBtn.classList.remove('hidden');
+      }
+      
+      sounds.gameStart.play();
+      
+      // Reset chart data
+      gameState.gameChart.data.labels = ['0'];
+      gameState.gameChart.data.datasets[0].data = [1];
+      
+      const config = gameConfigs[gameState.currentGame];
+      const crashPoint = calculateCrashPoint(config);
+      
+      console.log(`Game will crash at ${crashPoint.toFixed(2)}x`);
+      
+      // Animation function
+      let lastTimestamp = 0;
+      const animateGraph = (timestamp) => {
+        if (!lastTimestamp) lastTimestamp = timestamp;
+        
+        const elapsed = timestamp - lastTimestamp;
+        lastTimestamp = timestamp;
+        
+        if (!gameState.isGraphRunning) return;
+        
+        const gameTime = (Date.now() - gameState.gameStartTime) / 1000;
+        gameState.currentMultiplier = calculateMultiplier(gameTime, config);
+        
+        // Check if game should crash
+        if (gameState.currentMultiplier >= crashPoint) {
+          crashGame();
+          return;
+        }
+        
+        // Update multiplier display
+        elements.currentMultiplier.textContent = `${gameState.currentMultiplier.toFixed(2)}x`;
+        
+        // Check auto cashout
+        if (gameState.hasBetPlaced && !gameState.hasCashedOut && 
+            gameState.currentMultiplier >= gameState.autoCashoutValue) {
+          cashout(true);
+        }
+        
+        // Update chart
+        if (elapsed > 30) { // Update chart every 30ms for performance
+          const chart = gameState.gameChart;
+          chart.data.labels.push(gameTime.toFixed(1));
+          chart.data.datasets[0].data.push(gameState.currentMultiplier);
+          
+          // Adjust y-axis scale
+          chart.options.scales.y.max = Math.max(gameState.currentMultiplier * 1.5, 2);
+          chart.update();
+        }
+        
+        gameState.animationId = requestAnimationFrame(animateGraph);
+      };
+      
+      gameState.animationId = requestAnimationFrame(animateGraph);
+    }
+
+    // Calculate multiplier based on time
+    function calculateMultiplier(time, config) {
+      return Math.pow(Math.E, config.growthRate * time);
+    }
+
+    // Calculate crash point
+    function calculateCrashPoint(config) {
+      // This is a simplified algorithm for determining when the game crashes
+      // In a real game, this would be determined by the server for fairness
+      const randomValue = Math.random();
+      let multiplier;
+      
+      if (randomValue < config.crashChance) {
+        // Early crash (between 1x and 1.5x)
+        multiplier = 1 + (Math.random() * 0.5);
+      } else if (randomValue < config.crashChance * 5) {
+        // Medium crash (between 1.5x and 5x)
+        multiplier = 1.5 + (Math.random() * 3.5);
+      } else {
+        // Normal distribution up to max multiplier
+        multiplier = Math.min(
+          -Math.log(Math.random()) / config.crashChance / 10, 
+          config.maxMultiplier
+        );
+      }
+      
+      return multiplier;
+    }
+
+    // Crash the game
+    function crashGame() {
+      sounds.crash.play();
+      
+      gameState.isGraphRunning = false;
+      elements.gameStatus.textContent = '¡CRASH!';
+      elements.gameStatus.className = 'absolute top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg font-bold';
+      elements.cashoutBtn.classList.add('hidden');
+      elements.currentMultiplier.style.color = '#ef4444';
+      
+      // Add to history if player had active bet and didn't cash out
+      if (gameState.hasBetPlaced && !gameState.hasCashedOut) {
+        addToHistory({
+          id: generateGameId(),
+          bet: gameState.currentBet,
+          multiplier: 'CRASH',
+          payout: 0,
+          timestamp: new Date()
+        });
+      }
+      
+      // Schedule next round
+      gameState.timeoutId = setTimeout(() => {
+        resetGame();
+        startCountdown();
+      }, 3000);
+    }
+
+    // Place bet
+    function placeBet() {
+      const betAmount = parseFloat(elements.betAmount.value);
+      const autoCashoutValue = parseFloat(elements.autoCashout.value);
+      
+      if (isNaN(betAmount) || betAmount <= 0) {
+        alert('Por favor ingresa una cantidad válida para apostar.');
+        return;
+      }
+      
+      if (betAmount > gameState.balance) {
+        alert('No tienes suficiente saldo para realizar esta apuesta.');
+        return;
+      }
+      
+      if (isNaN(autoCashoutValue) || autoCashoutValue < 1.1) {
+        alert('El valor de auto-retiro debe ser al menos 1.1x.');
+        return;
+      }
+      
+      // Update game state
+      gameState.currentBet = betAmount;
+      gameState.autoCashoutValue = autoCashoutValue;
+      gameState.hasBetPlaced = true;
+      gameState.hasCashedOut = false;
+      
+      // Update balance
+      gameState.balance -= betAmount;
+      elements.balance.textContent = formatCurrency(gameState.balance);
+      elements.balance.classList.add('balance-update');
+      setTimeout(() => elements.balance.classList.remove('balance-update'), 500);
+      
+      // Update UI
+      elements.betBtn.disabled = true;
+      
+      if (gameState.isGraphRunning) {
+        elements.cashoutBtn.classList.remove('hidden');
+      }
+      
+      sounds.betPlaced.play();
+    }
+
+    // Cash out
+    function cashout(isAuto = false) {
+      if (!gameState.hasBetPlaced || gameState.hasCashedOut) return;
+      
+      gameState.hasCashedOut = true;
+      const winnings = gameState.currentBet * gameState.currentMultiplier;
+      
+      // Update balance
+      gameState.balance += winnings;
+      elements.balance.textContent = formatCurrency(gameState.balance);
+      elements.balance.classList.add('balance-update');
+      setTimeout(() => elements.balance.classList.remove('balance-update'), 500);
+      
+      // Update UI
+      elements.cashoutBtn.classList.add('hidden');
+      
+      // Add to history
+      addToHistory({
+        id: generateGameId(),
+        bet: gameState.currentBet,
+        multiplier: gameState.currentMultiplier.toFixed(2) + 'x',
+        payout: winnings,
+        timestamp: new Date()
+      });
+      
+      sounds.cashout.play();
+    }
+
+    // Add game result to history
+    function addToHistory(result) {
+      // Add to game history
+      gameState.gameHistory[gameState.currentGame].unshift(result);
+      
+      // Only keep last 50 records
+      if (gameState.gameHistory[gameState.currentGame].length > 50) {
+        gameState.gameHistory[gameState.currentGame].pop();
+      }
+      
+      // Update history UI
+      updateHistoryUI();
+    }
+
+    // Update history display
+    function updateHistoryUI() {
+      const history = gameState.gameHistory[gameState.currentGame];
+      elements.historyList.innerHTML = '';
+      
+      if (history.length === 0) {
+        const emptyRow = document.createElement('tr');
+        emptyRow.innerHTML = `
+          <td colspan="5" class="p-3 text-center text-gray-500">No hay historial disponible</td>
+        `;
+        elements.historyList.appendChild(emptyRow);
+        return;
+      }
+      
+      history.forEach((item, index) => {
+        const row = document.createElement('tr');
+        row.className = `history-item ${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-gray-700/30'}`;
+        
+        // Format timestamp
+        const time = new Intl.DateTimeFormat('es-ES', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }).format(item.timestamp);
+        
+        // Determine if crash or cashout
+        const isLoss = item.multiplier === 'CRASH';
+        const multiplierClass = isLoss ? 'text-red-500' : 'text-green-400';
+        
+        row.innerHTML = `
+          <td class="p-3">${item.id}</td>
+          <td class="p-3">${currencyConfigs[gameState.currency].symbol}${formatCurrency(item.bet)}</td>
+          <td class="p-3 ${multiplierClass} font-bold">${item.multiplier}</td>
+          <td class="p-3">${isLoss ? '-' : currencyConfigs[gameState.currency].symbol + formatCurrency(item.payout)}</td>
+          <td class="p-3 text-gray-400">${time}</td>
+        `;
+        
+        elements.historyList.appendChild(row);
+      });
+    }
+
+    // Generate unique game ID
+    function generateGameId() {
+      return Math.random().toString(36).substring(2, 8).toUpperCase();
+    }
+
+    // Reset game state for next round
+    function resetGame() {
+      clearTimeout(gameState.timeoutId);
+      clearInterval(gameState.intervalId);
+      cancelAnimationFrame(gameState.animationId);
+      
+      gameState.countdown = 5;
+      gameState.isCountingDown = false;
+      gameState.isGraphRunning = false;
+      gameState.hasBetPlaced = false;
+      gameState.hasCashedOut = false;
+      gameState.currentMultiplier = 1;
+      
+      elements.currentMultiplier.style.color = '';
+      elements.betBtn.disabled = false;
+      elements.cashoutBtn.classList.add('hidden');
+    }
+
+    // Event Listeners
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initialize the game
+      initChart();
+      startCountdown();
+      updateHistoryUI();
+      
+      // Game tab buttons
+      elements.gameTabs.crash.addEventListener('click', () => {
+        resetGame();
+        startCountdown();
+      });
+      
+      // Currency buttons
+      elements.currencyButtons.MXN.addEventListener('click', () => switchCurrency('MXN'));
+      elements.currencyButtons.USD.addEventListener('click', () => switchCurrency('USD'));
+      elements.currencyButtons.BTC.addEventListener('click', () => switchCurrency('BTC'));
+      
+      // Betting controls
+      elements.betBtn.addEventListener('click', () => {
+        if (gameState.isCountingDown) {
+          placeBet();
+        }
+      });
+      
+      elements.cashoutBtn.addEventListener('click', () => cashout());
+      
+      // Bet presets
+      elements.betPresets.forEach(preset => {
+        preset.addEventListener('click', () => {
+          const value = preset.textContent;
+          const currentBet = parseFloat(elements.betAmount.value) || 0;
+          
+          switch (value) {
+            case '+5':
+              elements.betAmount.value = currentBet + 5;
+              break;
+            case '+10':
+              elements.betAmount.value = currentBet + 10;
+              break;
+            case '+50':
+              elements.betAmount.value = currentBet + 50;
+              break;
+            case '+100':
+              elements.betAmount.value = currentBet + 100;
+              break;
+            case '2x':
+              elements.betAmount.value = currentBet * 2;
+              break;
+            case 'Max':
+              elements.betAmount.value = gameState.balance;
+              break;
+          }
+        });
+      });
+      
+      // Reset history
+      elements.resetHistory.addEventListener('click', () => {
+        gameState.gameHistory[gameState.currentGame] = [];
+        updateHistoryUI();
+      });
+
+      // Inicializar moneda
+      switchCurrency('MXN');
+    });
+  </script>
+</body>
+</html>
